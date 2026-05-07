@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.analytics.mapper.WrongQuestionBookMapper">
+
+    <resultMap id="BaseResultMap" type="com.exam.analytics.entity.WrongQuestionBook">
+        <id column="id" property="id"/>
+        <result column="student_id" property="studentId"/>
+        <result column="question_id" property="questionId"/>
+        <result column="exam_id" property="examId"/>
+        <result column="exam_paper_id" property="examPaperId"/>
+        <result column="first_wrong_time" property="firstWrongTime"/>
+        <result column="last_wrong_time" property="lastWrongTime"/>
+        <result column="wrong_count" property="wrongCount"/>
+        <result column="latest_answer" property="latestAnswer"/>
+        <result column="mastered_status" property="masteredStatus"/>
+        <result column="mastered_time" property="masteredTime"/>
+        <result column="note_text" property="noteText"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="question_title" property="questionTitle"/>
+        <result column="question_type" property="questionType"/>
+    </resultMap>
+
+    <select id="selectByStudent" resultMap="BaseResultMap">
+        SELECT w.*, q.title AS question_title, q.question_type AS question_type
+        FROM wrong_question_book w
+        LEFT JOIN question q ON w.question_id = q.id
+        WHERE w.student_id = #{studentId}
+        ORDER BY w.last_wrong_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByStudent" resultType="long">
+        SELECT COUNT(1) FROM wrong_question_book WHERE student_id = #{studentId}
+    </select>
+
+    <update id="updateMasteredStatus">
+        UPDATE wrong_question_book
+        SET mastered_status = #{masteredStatus},
+            mastered_time = <choose><when test="masteredStatus == 1">NOW()</when><otherwise>NULL</otherwise></choose>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateMasteredByStudentAndQuestion">
+        UPDATE wrong_question_book
+        SET mastered_status = #{masteredStatus},
+            mastered_time = <choose><when test="masteredStatus == 1">NOW()</when><otherwise>NULL</otherwise></choose>
+        WHERE student_id = #{studentId} AND question_id = #{questionId}
+    </update>
+
+    <select id="selectSummaryByStudent" resultType="java.util.HashMap">
+        SELECT q.question_type AS questionType, COUNT(*) AS count
+        FROM wrong_question_book w
+        JOIN question q ON w.question_id = q.id
+        WHERE w.student_id = #{studentId}
+        GROUP BY q.question_type
+    </select>
+</mapper>

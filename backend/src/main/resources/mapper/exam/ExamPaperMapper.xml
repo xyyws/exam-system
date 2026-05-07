@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.exam.mapper.ExamPaperMapper">
+    <resultMap id="BaseResultMap" type="com.exam.exam.entity.ExamPaper">
+        <id column="id" property="id"/>
+        <result column="exam_id" property="examId"/>
+        <result column="paper_id" property="paperId"/>
+        <result column="student_id" property="studentId"/>
+        <result column="answer_status" property="answerStatus"/>
+        <result column="start_time" property="startTime"/>
+        <result column="submit_time" property="submitTime"/>
+        <result column="auto_submit" property="autoSubmit"/>
+        <result column="used_minutes" property="usedMinutes"/>
+        <result column="objective_score" property="objectiveScore"/>
+        <result column="subjective_score" property="subjectiveScore"/>
+        <result column="total_score" property="totalScore"/>
+        <result column="cut_screen_count" property="cutScreenCount"/>
+        <result column="violation_count" property="violationCount"/>
+        <result column="ip_address" property="ipAddress"/>
+        <result column="device_info" property="deviceInfo"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM exam_paper WHERE id = #{id}
+    </select>
+
+    <select id="selectByExamAndStudent" resultMap="BaseResultMap">
+        SELECT * FROM exam_paper WHERE exam_id = #{examId} AND student_id = #{studentId} LIMIT 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exam_paper (exam_id, paper_id, student_id, answer_status, start_time, device_info)
+        VALUES (#{examId}, #{paperId}, #{studentId}, #{answerStatus}, #{startTime}, #{deviceInfo})
+    </insert>
+
+    <update id="update">
+        UPDATE exam_paper SET answer_status = #{answerStatus},
+            submit_time = #{submitTime}, auto_submit = #{autoSubmit}, used_minutes = #{usedMinutes},
+            objective_score = #{objectiveScore}, subjective_score = #{subjectiveScore},
+            total_score = #{totalScore}, cut_screen_count = #{cutScreenCount},
+            violation_count = #{violationCount}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE exam_paper SET answer_status = #{answerStatus} WHERE id = #{id}
+    </update>
+
+    <select id="selectByExamId" resultMap="BaseResultMap">
+        SELECT * FROM exam_paper WHERE exam_id = #{examId}
+    </select>
+
+    <select id="selectByStudentId" resultMap="BaseResultMap">
+        SELECT * FROM exam_paper WHERE student_id = #{studentId} ORDER BY create_time DESC
+    </select>
+
+    <select id="selectExamStats" resultType="java.util.HashMap">
+        SELECT
+            COUNT(*) AS participant_count,
+            SUM(CASE WHEN answer_status >= 2 THEN 1 ELSE 0 END) AS submit_count,
+            ROUND(AVG(CASE WHEN answer_status >= 2 THEN total_score ELSE NULL END), 1) AS avg_score,
+            ROUND(MAX(CASE WHEN answer_status >= 2 THEN total_score ELSE NULL END), 1) AS max_score,
+            ROUND(MIN(CASE WHEN answer_status >= 2 THEN total_score ELSE NULL END), 1) AS min_score
+        FROM exam_paper
+        WHERE exam_id = #{examId}
+    </select>
+
+    <select id="selectExamRankings" resultType="java.util.HashMap">
+        SELECT ep.id AS exam_paper_id, ep.student_id, ep.total_score, ep.answer_status,
+               u.real_name AS student_name, u.student_no
+        FROM exam_paper ep
+        JOIN sys_user u ON ep.student_id = u.id
+        WHERE ep.exam_id = #{examId} AND ep.answer_status >= 2
+        ORDER BY ep.total_score DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countExamParticipants" resultType="long">
+        SELECT COUNT(*) FROM exam_paper WHERE exam_id = #{examId} AND answer_status >= 2
+    </select>
+
+    <select id="selectMonitorByExamId" resultType="java.util.HashMap">
+        SELECT ep.id AS exam_paper_id, ep.student_id, ep.answer_status, ep.cut_screen_count,
+               ep.violation_count, ep.used_minutes, ep.total_score,
+               u.real_name AS student_name, u.student_no
+        FROM exam_paper ep
+        JOIN sys_user u ON ep.student_id = u.id
+        WHERE ep.exam_id = #{examId}
+        ORDER BY ep.answer_status, u.real_name
+    </select>
+
+    <select id="selectOngoingByStudentId" resultType="java.util.HashMap">
+        SELECT ep.id AS exam_paper_id, ep.exam_id, ep.start_time,
+               e.exam_name, e.end_time, e.duration_minutes,
+               (SELECT COUNT(*) FROM exam_answer ea WHERE ea.exam_paper_id = ep.id AND ea.answer_status >= 1) AS answered_count,
+               (SELECT COUNT(*) FROM exam_answer ea WHERE ea.exam_paper_id = ep.id) AS total_count
+        FROM exam_paper ep
+        JOIN exam e ON ep.exam_id = e.id
+        WHERE ep.student_id = #{studentId} AND ep.answer_status = 1
+        LIMIT 1
+    </select>
+
+    <select id="countParticipants" resultType="long">
+        SELECT COUNT(1) FROM exam_paper
+    </select>
+</mapper>

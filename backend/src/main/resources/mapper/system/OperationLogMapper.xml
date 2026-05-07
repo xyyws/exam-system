@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.system.mapper.OperationLogMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO operation_log (user_id, username, real_name, operation, method, uri, ip, status, error_msg, cost_time)
+        VALUES (#{userId}, #{username}, #{realName}, #{operation}, #{method}, #{uri}, #{ip}, #{status}, #{errorMsg}, #{costTime})
+    </insert>
+
+    <select id="selectList" resultType="com.exam.system.entity.OperationLog">
+        SELECT * FROM operation_log
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND (username LIKE CONCAT('%', #{keyword}, '%')
+              OR real_name LIKE CONCAT('%', #{keyword}, '%')
+              OR operation LIKE CONCAT('%', #{keyword}, '%')
+              OR uri LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null">AND status = #{status}</if>
+        ORDER BY create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(*) FROM operation_log
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND (username LIKE CONCAT('%', #{keyword}, '%')
+              OR real_name LIKE CONCAT('%', #{keyword}, '%')
+              OR operation LIKE CONCAT('%', #{keyword}, '%')
+              OR uri LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null">AND status = #{status}</if>
+    </select>
+
+</mapper>

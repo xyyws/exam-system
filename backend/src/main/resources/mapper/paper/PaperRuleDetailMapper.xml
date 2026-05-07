@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.paper.mapper.PaperRuleDetailMapper">
+    <select id="selectByRuleId" resultType="com.exam.paper.entity.PaperRuleDetail">
+        SELECT id, rule_id AS ruleId, question_type AS questionType,
+            category_id AS categoryId, difficulty, question_count AS questionCount,
+            score_per_question AS scorePerQuestion, sort_no AS sortNo, create_time AS createTime
+        FROM paper_rule_detail WHERE rule_id = #{ruleId} ORDER BY sort_no
+    </select>
+
+    <insert id="insertBatch">
+        INSERT INTO paper_rule_detail (rule_id, question_type, category_id, difficulty,
+            question_count, score_per_question, sort_no)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.ruleId}, #{item.questionType}, #{item.categoryId}, #{item.difficulty},
+            #{item.questionCount}, #{item.scorePerQuestion}, #{item.sortNo})
+        </foreach>
+    </insert>
+</mapper>

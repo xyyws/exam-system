@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.system.mapper.SysRoleMapper">
+
+    <resultMap id="BaseResultMap" type="com.exam.system.entity.SysRole">
+        <id column="id" property="id"/>
+        <result column="role_code" property="roleCode"/>
+        <result column="role_name" property="roleName"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM sys_role WHERE id = #{id}
+    </select>
+
+    <select id="selectByCode" resultMap="BaseResultMap">
+        SELECT * FROM sys_role WHERE role_code = #{roleCode}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM sys_role WHERE status = 1 ORDER BY id
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT r.* FROM sys_role r
+        JOIN sys_user_role ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId} AND r.status = 1
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_role (role_code, role_name, status, remark) VALUES (#{roleCode}, #{roleName}, #{status}, #{remark})
+    </insert>
+
+    <update id="update">
+        UPDATE sys_role SET role_name = #{roleName}, status = #{status}, remark = #{remark} WHERE id = #{id}
+    </update>
+</mapper>

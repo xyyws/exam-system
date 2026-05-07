@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.paper.mapper.PaperMapper">
+    <resultMap id="BaseResultMap" type="com.exam.paper.entity.Paper">
+        <id column="id" property="id"/>
+        <result column="paper_name" property="paperName"/>
+        <result column="paper_type" property="paperType"/>
+        <result column="total_score" property="totalScore"/>
+        <result column="question_count" property="questionCount"/>
+        <result column="duration_minutes" property="durationMinutes"/>
+        <result column="difficulty_level" property="difficultyLevel"/>
+        <result column="status" property="status"/>
+        <result column="rule_json" property="ruleJson"/>
+        <result column="remark" property="remark"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="deleted" property="deleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM paper WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO paper (paper_name, paper_type, total_score, question_count, duration_minutes,
+            difficulty_level, status, rule_json, remark, creator_id)
+        VALUES (#{paperName}, #{paperType}, #{totalScore}, #{questionCount}, #{durationMinutes},
+            #{difficultyLevel}, #{status}, #{ruleJson}, #{remark}, #{creatorId})
+    </insert>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT * FROM paper WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">AND paper_name LIKE CONCAT('%', #{keyword}, '%')</if>
+        <if test="paperType != null">AND paper_type = #{paperType}</if>
+        <if test="status != null">AND status = #{status}</if>
+        <if test="creatorId != null">AND creator_id = #{creatorId}</if>
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(1) FROM paper WHERE deleted = 0
+        <if test="keyword != null and keyword != ''">AND paper_name LIKE CONCAT('%', #{keyword}, '%')</if>
+        <if test="paperType != null">AND paper_type = #{paperType}</if>
+        <if test="status != null">AND status = #{status}</if>
+        <if test="creatorId != null">AND creator_id = #{creatorId}</if>
+    </select>
+
+    <update id="softDelete">
+        UPDATE paper SET deleted = 1 WHERE id = #{id}
+    </update>
+</mapper>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.exam.mapper.ExamMapper">
+    <resultMap id="BaseResultMap" type="com.exam.exam.entity.Exam">
+        <id column="id" property="id"/>
+        <result column="exam_name" property="examName"/>
+        <result column="paper_id" property="paperId"/>
+        <result column="exam_mode" property="examMode"/>
+        <result column="publish_status" property="publishStatus"/>
+        <result column="start_time" property="startTime"/>
+        <result column="end_time" property="endTime"/>
+        <result column="duration_minutes" property="durationMinutes"/>
+        <result column="total_score" property="totalScore"/>
+        <result column="pass_score" property="passScore"/>
+        <result column="anti_cheat_switch" property="antiCheatSwitch"/>
+        <result column="cut_screen_limit" property="cutScreenLimit"/>
+        <result column="auto_submit_switch" property="autoSubmitSwitch"/>
+        <result column="allow_repeat_enter" property="allowRepeatEnter"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="paper_name" property="paperName"/>
+    </resultMap>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM exam WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exam (exam_name, paper_id, exam_mode, publish_status, start_time, end_time,
+            duration_minutes, total_score, pass_score, anti_cheat_switch, cut_screen_limit,
+            auto_submit_switch, allow_repeat_enter, creator_id, remark)
+        VALUES (#{examName}, #{paperId}, #{examMode}, #{publishStatus}, #{startTime}, #{endTime},
+            #{durationMinutes}, #{totalScore}, #{passScore}, #{antiCheatSwitch}, #{cutScreenLimit},
+            #{autoSubmitSwitch}, #{allowRepeatEnter}, #{creatorId}, #{remark})
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE exam SET publish_status = #{publishStatus} WHERE id = #{id}
+    </update>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT e.*, p.paper_name AS paper_name
+        FROM exam e
+        LEFT JOIN paper p ON e.paper_id = p.id
+        <where>
+            <if test="creatorId != null">AND e.creator_id = #{creatorId}</if>
+            <if test="publishStatus != null">AND e.publish_status = #{publishStatus}</if>
+            <if test="keyword != null and keyword != ''">AND e.exam_name LIKE CONCAT('%', #{keyword}, '%')</if>
+        </where>
+        ORDER BY e.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countList" resultType="long">
+        SELECT COUNT(1) FROM exam
+        <where>
+            <if test="creatorId != null">AND creator_id = #{creatorId}</if>
+            <if test="publishStatus != null">AND publish_status = #{publishStatus}</if>
+            <if test="keyword != null and keyword != ''">AND exam_name LIKE CONCAT('%', #{keyword}, '%')</if>
+        </where>
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(1) FROM exam
+    </select>
+
+    <select id="selectAvailable" resultMap="BaseResultMap">
+        SELECT DISTINCT e.* FROM exam e
+        JOIN exam_paper ep ON e.id = ep.exam_id
+        WHERE e.publish_status = 1
+        AND ep.student_id = #{studentId}
+        AND e.start_time &lt;= #{now} AND e.end_time &gt;= #{now}
+    </select>
+</mapper>

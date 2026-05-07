@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.exam.question.mapper.QuestionCategoryMapper">
+    <resultMap id="BaseResultMap" type="com.exam.question.entity.QuestionCategory">
+        <id column="id" property="id"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="category_name" property="categoryName"/>
+        <result column="sort_no" property="sortNo"/>
+        <result column="status" property="status"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM question_category WHERE status = 1 ORDER BY sort_no
+    </select>
+
+    <select id="selectByParentId" resultMap="BaseResultMap">
+        SELECT * FROM question_category WHERE parent_id = #{parentId} AND status = 1 ORDER BY sort_no
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM question_category WHERE id = #{id}
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO question_category (parent_id, category_name, sort_no, status, create_by)
+        VALUES (#{parentId}, #{categoryName}, #{sortNo}, #{status}, #{createBy})
+    </insert>
+
+    <update id="update">
+        UPDATE question_category SET category_name = #{categoryName}, sort_no = #{sortNo},
+            status = #{status}, update_by = #{updateBy} WHERE id = #{id}
+    </update>
+</mapper>
