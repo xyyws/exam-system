@@ -17,6 +17,7 @@ import QuestionBank from "@/views/teacher/QuestionBank.vue";
 import CategoryList from "@/views/teacher/CategoryList.vue";
 import PaperManage from "@/views/teacher/PaperManage.vue";
 import AutoPaperWizard from "@/views/teacher/AutoPaperWizard.vue";
+import ManualPaper from "@/views/teacher/ManualPaper.vue";
 import ExamManage from "@/views/teacher/ExamManage.vue";
 import ExamMonitor from "@/views/teacher/ExamMonitor.vue";
 import MarkingCenter from "@/views/teacher/MarkingCenter.vue";
@@ -42,15 +43,15 @@ const adminRoutes = [
 
 const teacherRoutes = [
   { path: "dashboard", name: "teacher-dashboard", component: TeacherDashboardView, meta: { title: "首页", role: "TEACHER" } },
-  { path: "questions", name: "teacher-questions", component: QuestionBank, meta: { title: "题库考里", role: "TEACHER" } },
+  { path: "questions", name: "teacher-questions", component: QuestionBank, meta: { title: "题库管理", role: "TEACHER" } },
   { path: "categories", name: "teacher-categories", component: CategoryList, meta: { title: "题目分类", role: "TEACHER" } },
   { path: "papers", name: "teacher-papers", component: PaperManage, meta: { title: "试卷列表", role: "TEACHER" } },
   { path: "paper-auto", name: "teacher-paper-auto", component: AutoPaperWizard, meta: { title: "自动组卷", role: "TEACHER" } },
-  { path: "paper-manual", name: "teacher-paper-manual", component: AutoPaperWizard, meta: { title: "手动组卷", role: "TEACHER" } },
+  { path: "paper-manual", name: "teacher-paper-manual", component: ManualPaper, meta: { title: "手动组卷", role: "TEACHER" } },
+  { path: "exams/create", name: "teacher-exams-create", component: ExamManage, meta: { title: "创建考试", role: "TEACHER" } },
   { path: "exams", name: "teacher-exams", component: ExamManage, meta: { title: "考试列表", role: "TEACHER" } },
   { path: "monitor", name: "teacher-monitor", component: ExamMonitor, meta: { title: "监控中心", role: "TEACHER" } },
   { path: "marking", name: "teacher-marking", component: MarkingCenter, meta: { title: "阅卷任务", role: "TEACHER" } },
-  { path: "scores", name: "teacher-scores", component: Analytics, meta: { title: "成绩列表", role: "TEACHER" } },
   { path: "analytics", name: "teacher-analytics", component: Analytics, meta: { title: "统计分析", role: "TEACHER" } },
   { path: "profile", name: "teacher-profile", component: TeacherProfile, meta: { title: "个人中心", role: "TEACHER" } }
 ];

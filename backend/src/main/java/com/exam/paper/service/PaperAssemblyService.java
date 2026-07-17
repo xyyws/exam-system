@@ -11,6 +11,8 @@ import com.exam.question.mapper.QuestionMapper;
 import com.exam.question.mapper.QuestionOptionMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +29,9 @@ public class PaperAssemblyService {
     private final PaperRuleDetailMapper ruleDetailMapper;
     private final QuestionMapper questionMapper;
     private final QuestionOptionMapper optionMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     public PaperAssemblyService(PaperMapper paperMapper, PaperQuestionMapper paperQuestionMapper,
                                 PaperRuleMapper paperRuleMapper, PaperRuleDetailMapper ruleDetailMapper,
@@ -46,6 +50,10 @@ public class PaperAssemblyService {
     @Transactional
     public Long createManualPaper(String paperName, Integer durationMinutes, String remark,
                                    List<ManualQuestionItem> items) {
+        if (items == null || items.isEmpty()) {
+            throw new BusinessException(ApiCodeEnum.BAD_REQUEST.getCode(), "试卷至少需要选择1道题目");
+        }
+
         Paper paper = new Paper();
         paper.setPaperName(paperName);
         paper.setPaperType(1);
@@ -53,11 +61,13 @@ public class PaperAssemblyService {
         paper.setRemark(remark);
         paper.setQuestionCount(items.size());
         paper.setStatus(1);
+        paper.setDeleted(0);
         paper.setCreatorId(SecurityUtils.getCurrentUserId());
 
         BigDecimal totalScore = BigDecimal.ZERO;
         for (ManualQuestionItem item : items) {
-            totalScore = totalScore.add(item.getScore());
+            BigDecimal s = item.getScore() != null ? item.getScore() : BigDecimal.ZERO;
+            totalScore = totalScore.add(s);
         }
         paper.setTotalScore(totalScore);
         paperMapper.insert(paper);
@@ -68,14 +78,21 @@ public class PaperAssemblyService {
             Question q = questionMapper.selectById(item.getQuestionId());
             if (q == null) continue;
             List<QuestionOption> options = optionMapper.selectByQuestionId(q.getId());
+            BigDecimal score = item.getScore() != null ? item.getScore() : q.getScore();
+            if (score == null) score = new BigDecimal("5");
             PaperQuestion pq = new PaperQuestion();
             pq.setPaperId(paper.getId());
             pq.setQuestionId(q.getId());
             pq.setQuestionType(q.getQuestionType());
-            pq.setQuestionOrder(order++);
-            pq.setScore(item.getScore());
-            pq.setQuestionSnapshot(buildSnapshot(q, options, item.getScore()));
+            pq.setQuestionOrder(item.getQuestionOrder() != null ? item.getQuestionOrder() : order);
+            pq.setScore(score);
+            pq.setQuestionSnapshot(buildSnapshot(q, options, score));
             pqList.add(pq);
+            order++;
+        }
+
+        if (pqList.isEmpty()) {
+            throw new BusinessException(ApiCodeEnum.BAD_REQUEST.getCode(), "所选题目均无效，请重新选择");
         }
         paperQuestionMapper.insertBatch(pqList);
         return paper.getId();

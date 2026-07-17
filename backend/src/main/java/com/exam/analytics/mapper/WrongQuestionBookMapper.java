@@ -21,4 +21,10 @@ public interface WrongQuestionBookMapper {
                                             @Param("masteredStatus") Integer masteredStatus);
 
     List<java.util.Map<String, Object>> selectSummaryByStudent(@Param("studentId") Long studentId);
+
+    int upsert(WrongQuestionBook book);
+
+    int updateNote(@Param("studentId") Long studentId,
+                   @Param("questionId") Long questionId,
+                   @Param("noteText") String noteText);
 }

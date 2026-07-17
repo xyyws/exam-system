@@ -22,6 +22,10 @@
         <result column="mark_comment" property="markComment"/>
     </resultMap>
 
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM exam_answer WHERE id = #{id}
+    </select>
+
     <select id="selectByExamPaperId" resultMap="BaseResultMap">
         SELECT * FROM exam_answer WHERE exam_paper_id = #{examPaperId} ORDER BY question_order
     </select>
@@ -63,6 +67,7 @@
 
     <select id="selectScoreTrend" resultType="java.util.HashMap">
         SELECT e.id as exam_id, e.exam_name,
+               MAX(ea.exam_paper_id) as examPaperId,
                COALESCE(SUM(ea.score), 0) as total_score,
                COALESCE(SUM(ea.max_score), 0) as total_max,
                e.start_time
@@ -86,4 +91,20 @@
           AND ea.mark_status = 1
         GROUP BY ea.question_type
     </select>
+
+    <select id="selectQuestionAccuracy" resultType="java.util.HashMap">
+        SELECT ea.question_id,
+               ea.question_type,
+               COUNT(*) AS total_count,
+               COALESCE(SUM(CASE WHEN ea.is_correct = 1 THEN 1 ELSE 0 END), 0) AS correct_count,
+               ROUND(COALESCE(SUM(CASE WHEN ea.is_correct = 1 THEN 1 ELSE 0 END), 0) * 100.0 / COUNT(*), 1) AS accuracy
+        FROM exam_answer ea
+        WHERE ea.exam_id = #{examId} AND ea.answer_status >= 1
+        GROUP BY ea.question_id, ea.question_type
+        ORDER BY ea.question_type, ea.question_id
+    </select>
+
+    <delete id="deleteByStudentId">
+        DELETE FROM exam_answer WHERE student_id = #{studentId}
+    </delete>
 </mapper>

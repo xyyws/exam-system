@@ -53,7 +53,7 @@ class RuntimeServiceTest {
 
     @BeforeEach
     void setUp() {
-        runtimeService = new RuntimeService(examMapper, examPaperMapper, paperQuestionMapper, answerMapper);
+        runtimeService = new RuntimeService(examMapper, examPaperMapper, paperQuestionMapper, answerMapper, null);
     }
 
     @Test

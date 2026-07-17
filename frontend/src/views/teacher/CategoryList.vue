@@ -7,9 +7,9 @@
 </template>
 <script setup>
 import { ref,reactive,onMounted } from "vue";import { getCategories,createCategory,updateCategory } from "@/api/question";import { ElMessage } from "element-plus";
-const list=ref([]);const dialogVisible=ref(false);const form=reactive({id:null,parentId:0,categoryName:"",sortNo:0});
+const list=ref([]);const dialogVisible=ref(false);const form=reactive({id:null,parentId:0,categoryName:"",sortNo:0,status:1});
 onMounted(async()=>{list.value=(await getCategories()).data||[]});
-function openDialog(row){Object.assign(form,{id:null,parentId:0,categoryName:"",sortNo:0},row);dialogVisible.value=true}
-async function save(){try{form.id?await updateCategory(form.id,form):await createCategory(form);dialogVisible.value=false;list.value=(await getCategories()).data||[];ElMessage.success("保存成功")}catch{ElMessage.error("保存失败")}}
+function openDialog(row){Object.assign(form,{id:null,parentId:0,categoryName:"",sortNo:0,status:1},row);dialogVisible.value=true}
+async function save(){try{const{id,...data}=form;if(id)await updateCategory(id,data);else await createCategory(data);dialogVisible.value=false;list.value=(await getCategories()).data||[];ElMessage.success("保存成功")}catch{ElMessage.error("保存失败")}}
 </script>
 <style scoped>.page-panel{padding:20px}.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.page-header h2{margin:0}</style>

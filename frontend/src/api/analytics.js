@@ -11,3 +11,7 @@ export function getTypeBreakdown() {
 export function getWrongBookSummary() {
   return request.get("/student/analytics/wrong-book/summary");
 }
+
+export function getQuestionAccuracy(examId) {
+  return request.get(`/teacher/analytics/exams/${examId}/question-accuracy`);
+}

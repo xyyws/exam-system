@@ -42,20 +42,41 @@ public class PaperController {
     }
 
     @PostMapping("/manual")
+    @SuppressWarnings("unchecked")
     public ApiResponse<Long> createManual(@RequestBody Map<String, Object> body) {
         String paperName = (String) body.get("paperName");
-        Integer duration = (Integer) body.getOrDefault("durationMinutes", 60);
+        Integer duration = body.get("durationMinutes") != null
+                ? Integer.valueOf(body.get("durationMinutes").toString()) : 60;
         String remark = (String) body.get("remark");
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> itemsRaw = (List<Map<String, Object>>) body.get("questionItems");
+        Object itemsObj = body.get("questionItems");
 
-        List<PaperAssemblyService.ManualQuestionItem> items = itemsRaw.stream().map(m -> {
+        if (!(itemsObj instanceof List) || ((List<?>) itemsObj).isEmpty()) {
+            throw new com.exam.common.exception.BusinessException(
+                    com.exam.common.enums.ApiCodeEnum.BAD_REQUEST.getCode(), "请至少选择1道题目");
+        }
+
+        List<PaperAssemblyService.ManualQuestionItem> items = new java.util.ArrayList<>();
+        List<?> itemsList = (List<?>) itemsObj;
+        int idx = 1;
+        for (Object obj : itemsList) {
+            if (!(obj instanceof Map)) continue;
+            Map<String, Object> m = (Map<String, Object>) obj;
             PaperAssemblyService.ManualQuestionItem item = new PaperAssemblyService.ManualQuestionItem();
-            item.setQuestionId(Long.valueOf(m.get("questionId").toString()));
-            item.setScore(new java.math.BigDecimal(m.get("score").toString()));
-            item.setQuestionOrder(Integer.valueOf(m.getOrDefault("questionOrder", 1).toString()));
-            return item;
-        }).toList();
+            Object qIdObj = m.get("questionId");
+            if (qIdObj == null) continue;
+            item.setQuestionId(Long.valueOf(qIdObj.toString()));
+            Object scoreObj = m.get("score");
+            item.setScore(new java.math.BigDecimal(scoreObj != null ? scoreObj.toString() : "5"));
+            Object orderObj = m.get("questionOrder");
+            item.setQuestionOrder(orderObj != null ? Integer.valueOf(orderObj.toString()) : idx);
+            items.add(item);
+            idx++;
+        }
+
+        if (items.isEmpty()) {
+            throw new com.exam.common.exception.BusinessException(
+                    com.exam.common.enums.ApiCodeEnum.BAD_REQUEST.getCode(), "请至少选择1道有效题目");
+        }
 
         return ApiResponse.success(paperAssemblyService.createManualPaper(paperName, duration, remark, items));
     }

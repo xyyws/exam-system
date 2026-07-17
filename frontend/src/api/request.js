@@ -2,7 +2,7 @@ import axios from "axios";
 import { ElMessage } from "element-plus";
 
 const request = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: "http://localhost:8081/api",
   timeout: 15000
 });
 
@@ -16,15 +16,23 @@ request.interceptors.request.use((config) => {
 
 request.interceptors.response.use(
   (response) => {
+    // Blob 响应（文件下载）直接放行
+    if (response.config.responseType === "blob") return response;
     const { code, message } = response.data;
     if (code === "0") return response.data;
     ElMessage.error(message || "请求失败");
     return Promise.reject(new Error(message));
   },
-  (error) => {
+  async (error) => {
     if (error.response) {
       const status = error.response.status;
-      const msg = error.response.data?.message || "服务器错误";
+      // blob 响应里的 JSON 错误需要先转文本解析
+      let msg = "服务器错误";
+      if (error.response.data instanceof Blob) {
+        try { const text = await error.response.data.text(); msg = JSON.parse(text).message || msg; } catch {}
+      } else {
+        msg = error.response.data?.message || msg;
+      }
       if (status === 401) {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");

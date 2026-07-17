@@ -11,6 +11,9 @@
         <el-form-item prop="password">
           <el-input v-model="form.password" type="password" placeholder="密码" prefix-icon="Lock" show-password />
         </el-form-item>
+        <div class="forgot-password">
+          <el-link type="primary" underline="never" @click="showForgotPassword">忘记密码？</el-link>
+        </div>
         <el-form-item>
           <el-button type="primary" :loading="loading" style="width: 100%; height: 48px; font-weight: 700; border-radius: 14px"
             @click="handleLogin">
@@ -26,7 +29,7 @@
 import { ref, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const router = useRouter();
 const route = useRoute();
@@ -43,6 +46,18 @@ const rules = {
   username: [{ required: true, message: "请输入用户名", trigger: "blur" }],
   password: [{ required: true, message: "请输入密码", trigger: "blur" }]
 };
+
+function showForgotPassword() {
+  ElMessageBox.alert(
+    '<p>请联系系统管理员重置您的密码。</p><p style="margin-top:8px;color:#909399;font-size:13px;">管理员联系方式请咨询您的教师或教务处。</p>',
+    "忘记密码",
+    {
+      confirmButtonText: "我知道了",
+      type: "info",
+      dangerouslyUseHTMLString: true
+    }
+  );
+}
 
 async function handleLogin() {
   const valid = await formRef.value.validate().catch(() => false);

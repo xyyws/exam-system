@@ -126,8 +126,13 @@ async function save() {
   if (!valid) return;
   saving.value = true;
   try {
-    if (form.id) await updateUser(form.id, form);
-    else await createUser(form);
+    const { id, ...all } = form;
+    if (id) {
+      const { realName, gender, phone, email, deptName, classId, remark } = all;
+      await updateUser(id, { realName, gender, phone, email, deptName, classId, remark });
+    } else {
+      await createUser(all);
+    }
     dialogVisible.value = false;
     fetch();
     ElMessage.success("保存成功");

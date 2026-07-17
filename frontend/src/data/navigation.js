@@ -2,7 +2,7 @@ import {
   ArrowDown, Bell, Calendar, Collection, DataAnalysis, EditPen,
   FolderOpened, HomeFilled, List, Lock, Memo, Monitor, Notebook,
   OfficeBuilding, Operation, PieChart, Postcard, Reading, School,
-  Setting, TrendCharts, User, UserFilled, Tickets
+  Setting, User, UserFilled, Tickets
 } from "@element-plus/icons-vue";
 
 export const sharedIcons = { bell: Bell, caret: ArrowDown };
@@ -63,10 +63,9 @@ export const roleShellMap = {
         key: "teacher-marking-group", label: "阅卷与成绩", icon: Reading,
         children: [
           { key: "teacher-marking", label: "阅卷任务", path: "/teacher/marking" },
-          { key: "teacher-scores", label: "成绩列表", path: "/teacher/scores" }
+          { key: "teacher-analytics", label: "统计分析", path: "/teacher/analytics" }
         ]
       },
-      { key: "teacher-analytics", label: "统计分析", path: "/teacher/analytics", icon: TrendCharts },
       { key: "teacher-profile", label: "个人中心", path: "/teacher/profile", icon: User }
     ]
   },

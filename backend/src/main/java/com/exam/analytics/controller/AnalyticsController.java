@@ -4,8 +4,12 @@ import com.exam.analytics.entity.WrongQuestionBook;
 import com.exam.analytics.mapper.WrongQuestionBookMapper;
 import com.exam.common.security.SecurityUtils;
 import com.exam.common.web.ApiResponse;
+import com.exam.exam.entity.Exam;
+import com.exam.exam.mapper.ExamMapper;
 import com.exam.exam.mapper.ExamPaperMapper;
+import com.exam.question.mapper.QuestionMapper;
 import com.exam.runtime.mapper.ExamAnswerMapper;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -22,13 +26,18 @@ public class AnalyticsController {
 
     private final ExamAnswerMapper answerMapper;
     private final ExamPaperMapper examPaperMapper;
+    private final ExamMapper examMapper;
     private final WrongQuestionBookMapper wrongQuestionBookMapper;
+    private final QuestionMapper questionMapper;
 
     public AnalyticsController(ExamAnswerMapper answerMapper, ExamPaperMapper examPaperMapper,
-                               WrongQuestionBookMapper wrongQuestionBookMapper) {
+                               ExamMapper examMapper, WrongQuestionBookMapper wrongQuestionBookMapper,
+                               QuestionMapper questionMapper) {
         this.answerMapper = answerMapper;
         this.examPaperMapper = examPaperMapper;
+        this.examMapper = examMapper;
         this.wrongQuestionBookMapper = wrongQuestionBookMapper;
+        this.questionMapper = questionMapper;
     }
 
     @GetMapping("/api/student/analytics/trend")
@@ -129,7 +138,27 @@ public class AnalyticsController {
     public ApiResponse<List<Map<String, Object>>> studentScores() {
         Long studentId = SecurityUtils.getCurrentUserId();
         List<Map<String, Object>> rows = answerMapper.selectScoreTrend(studentId);
-        return ApiResponse.success(rows);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            BigDecimal score = (BigDecimal) row.get("total_score");
+            BigDecimal max = (BigDecimal) row.get("total_max");
+            Long examId = ((Number) row.get("exam_id")).longValue();
+            var exam = examMapper.selectById(examId);
+            BigDecimal passScore = exam != null ? exam.getPassScore() : BigDecimal.valueOf(60);
+            item.put("examId", examId);
+            item.put("examPaperId", row.get("examPaperId"));
+            item.put("examName", row.get("exam_name"));
+            item.put("totalScore", score);
+            item.put("totalMax", max);
+            item.put("percentage", max != null && max.compareTo(BigDecimal.ZERO) > 0
+                    ? score.multiply(BigDecimal.valueOf(100)).divide(max, 1, java.math.RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO);
+            item.put("passFlag", score != null && passScore != null && score.compareTo(passScore) >= 0);
+            item.put("submitTime", row.get("start_time"));
+            result.add(item);
+        }
+        return ApiResponse.success(result);
     }
 
     @GetMapping("/api/student/analytics/wrong-book/summary")
@@ -169,5 +198,57 @@ public class AnalyticsController {
         Integer masteredStatus = (Integer) body.getOrDefault("masteredStatus", 0);
         wrongQuestionBookMapper.updateMasteredByStudentAndQuestion(studentId, questionId, masteredStatus);
         return ApiResponse.success();
+    }
+
+    @PutMapping("/api/student/analytics/wrong-questions/{questionId}/note")
+    public ApiResponse<Void> updateNote(@PathVariable Long questionId, @RequestBody Map<String, String> body) {
+        Long studentId = SecurityUtils.getCurrentUserId();
+        wrongQuestionBookMapper.updateNote(studentId, questionId, body.getOrDefault("noteText", ""));
+        return ApiResponse.success();
+    }
+
+    // ─── Teacher: 题目正确率分析 ───
+    @GetMapping("/api/teacher/analytics/exams/{examId}/question-accuracy")
+    public ApiResponse<List<Map<String, Object>>> questionAccuracy(@PathVariable Long examId) {
+        List<Map<String, Object>> rows = answerMapper.selectQuestionAccuracy(examId);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Long qId = ((Number) row.get("question_id")).longValue();
+            var q = questionMapper.selectById(qId);
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("questionId", qId);
+            item.put("questionTitle", q != null ? q.getTitle() : "题目已删除");
+            item.put("questionType", QUESTION_TYPE_MAP.getOrDefault((Integer) row.get("question_type"), "未知"));
+            item.put("totalCount", row.get("total_count"));
+            item.put("correctCount", row.get("correct_count"));
+            item.put("accuracy", row.get("accuracy"));
+            result.add(item);
+        }
+        return ApiResponse.success(result);
+    }
+
+    // ─── Teacher: 成绩导出 CSV ───
+    @GetMapping("/api/teacher/analytics/exams/{examId}/export")
+    public ResponseEntity<byte[]> exportScores(@PathVariable Long examId) throws Exception {
+        List<Map<String, Object>> records = examPaperMapper.selectExamRankings(examId, 0, 10000);
+
+        var sb = new StringBuilder();
+        sb.append("排名,学生姓名,学号,总分,状态\r\n");
+        for (int i = 0; i < records.size(); i++) {
+            Map<String, Object> r = records.get(i);
+            sb.append(i + 1).append(',')
+              .append(r.get("studentName")).append(',')
+              .append(r.get("studentNo")).append(',')
+              .append(r.get("totalScore")).append(',')
+              .append(r.get("answerStatus") != null && ((Number) r.get("answerStatus")).intValue() >= 3 ? "已判分" : "已交卷")
+              .append("\r\n");
+        }
+
+        byte[] data = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .header("Content-Type", "text/csv;charset=UTF-8")
+                .header("Content-Disposition", "attachment;filename=scores_exam_" + examId + ".csv")
+                .contentLength(data.length)
+                .body(data);
     }
 }

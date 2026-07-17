@@ -9,6 +9,8 @@ import com.exam.system.dto.request.UserCreateRequest;
 import com.exam.system.dto.request.UserQueryRequest;
 import com.exam.system.dto.request.UserUpdateRequest;
 import com.exam.system.dto.response.UserResponse;
+import com.exam.exam.mapper.ExamPaperMapper;
+import com.exam.runtime.mapper.ExamAnswerMapper;
 import com.exam.system.entity.SysClass;
 import com.exam.system.entity.SysRole;
 import com.exam.system.entity.SysUser;
@@ -33,15 +35,20 @@ public class UserServiceImpl implements UserService {
     private final SysUserRoleMapper userRoleMapper;
     private final SysClassMapper classMapper;
     private final PasswordEncoder passwordEncoder;
+    private final ExamPaperMapper examPaperMapper;
+    private final ExamAnswerMapper examAnswerMapper;
 
     public UserServiceImpl(SysUserMapper userMapper, SysRoleMapper roleMapper,
                            SysUserRoleMapper userRoleMapper, SysClassMapper classMapper,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder, ExamPaperMapper examPaperMapper,
+                           ExamAnswerMapper examAnswerMapper) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
         this.userRoleMapper = userRoleMapper;
         this.classMapper = classMapper;
         this.passwordEncoder = passwordEncoder;
+        this.examPaperMapper = examPaperMapper;
+        this.examAnswerMapper = examAnswerMapper;
     }
 
     @Override
@@ -162,9 +169,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        // 先删除用户角色关联
+        // 先删除考试答题记录
+        examAnswerMapper.deleteByStudentId(id);
+        // 删除考试试卷记录
+        examPaperMapper.deleteByStudentId(id);
+        // 删除用户角色关联
         userMapper.deleteUserRoleByUserId(id);
-        // 再物理删除用户
+        // 最后物理删除用户
         userMapper.physicalDelete(id);
     }
 

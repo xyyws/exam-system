@@ -45,4 +45,10 @@ public class ClassController {
         classService.updateStatus(id, body.get("status"));
         return ApiResponse.success();
     }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        classService.deleteClass(id);
+        return ApiResponse.success();
+    }
 }

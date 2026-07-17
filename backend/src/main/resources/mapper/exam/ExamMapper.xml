@@ -40,6 +40,14 @@
         UPDATE exam SET publish_status = #{publishStatus} WHERE id = #{id}
     </update>
 
+    <update id="update">
+        UPDATE exam SET exam_name = #{examName}, start_time = #{startTime}, end_time = #{endTime},
+            duration_minutes = #{durationMinutes}, total_score = #{totalScore}, pass_score = #{passScore},
+            exam_mode = #{examMode}, publish_status = #{publishStatus}, anti_cheat_switch = #{antiCheatSwitch},
+            cut_screen_limit = #{cutScreenLimit}, remark = #{remark}
+        WHERE id = #{id}
+    </update>
+
     <select id="selectList" resultMap="BaseResultMap">
         SELECT e.*, p.paper_name AS paper_name
         FROM exam e
@@ -66,11 +74,39 @@
         SELECT COUNT(1) FROM exam
     </select>
 
+    <select id="countPublished" resultType="long">
+        SELECT COUNT(1) FROM exam WHERE publish_status &gt;= 1
+    </select>
+
     <select id="selectAvailable" resultMap="BaseResultMap">
         SELECT DISTINCT e.* FROM exam e
         JOIN exam_paper ep ON e.id = ep.exam_id
         WHERE e.publish_status = 1
         AND ep.student_id = #{studentId}
         AND e.start_time &lt;= #{now} AND e.end_time &gt;= #{now}
+    </select>
+
+    <select id="selectTeacherExamStats" resultType="java.util.HashMap">
+        SELECT u.real_name AS teacherName,
+               u.teacher_no AS teacherNo,
+               COUNT(e.id) AS examCount,
+               e.creator_id AS creatorId
+        FROM exam e
+        JOIN sys_user u ON e.creator_id = u.id
+        WHERE e.publish_status &gt;= 1
+        GROUP BY e.creator_id, u.real_name, u.teacher_no
+        ORDER BY examCount DESC
+    </select>
+
+    <select id="selectTeacherExams" resultType="java.util.HashMap">
+        SELECT e.id, e.exam_name AS examName, e.publish_status AS publishStatus,
+               e.start_time AS startTime, e.end_time AS endTime,
+               e.duration_minutes AS durationMinutes, e.total_score AS totalScore,
+               e.pass_score AS passScore, e.create_time AS createTime,
+               p.paper_name AS paperName
+        FROM exam e
+        LEFT JOIN paper p ON e.paper_id = p.id
+        WHERE e.creator_id = #{creatorId} AND e.publish_status &gt;= 1
+        ORDER BY e.create_time DESC
     </select>
 </mapper>

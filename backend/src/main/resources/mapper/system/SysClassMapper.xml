@@ -48,4 +48,8 @@
             remark = #{remark}, update_by = #{updateBy}
         WHERE id = #{id}
     </update>
+
+    <delete id="deleteById">
+        DELETE FROM sys_class WHERE id = #{id}
+    </delete>
 </mapper>

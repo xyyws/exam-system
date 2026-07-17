@@ -10,28 +10,42 @@
 
     <div v-if="selectedExamId && list.length" class="stats-row">
       <div class="mini-stat"><span class="ms-label">总人数</span><span class="ms-value">{{ list.length }}</span></div>
-      <div class="mini-stat"><span class="ms-label">进行中</span><span class="ms-value accent">{{ list.filter(r => r.answer_status === 1).length }}</span></div>
-      <div class="mini-stat"><span class="ms-label">已交卷</span><span class="ms-value">{{ list.filter(r => r.answer_status >= 2).length }}</span></div>
-      <div class="mini-stat"><span class="ms-label">违规</span><span class="ms-value danger">{{ list.filter(r => r.violation_count > 0).length }}</span></div>
+      <div class="mini-stat"><span class="ms-label">进行中</span><span class="ms-value accent">{{ list.filter(r => r.answerStatus === 1).length }}</span></div>
+      <div class="mini-stat"><span class="ms-label">已交卷</span><span class="ms-value">{{ list.filter(r => r.answerStatus >= 2).length }}</span></div>
+      <div class="mini-stat"><span class="ms-label">违规</span><span class="ms-value danger">{{ list.filter(r => r.violationCount > 0).length }}</span></div>
     </div>
 
     <el-table v-if="selectedExamId" :data="list" stripe v-loading="loading">
-      <el-table-column prop="student_name" label="学生" width="100" />
-      <el-table-column prop="student_no" label="学号" width="110" />
+      <el-table-column prop="studentName" label="学生" width="100" />
+      <el-table-column prop="studentNo" label="学号" width="110" />
       <el-table-column label="状态" width="80">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.answer_status)" size="small">{{ statusLabel(row.answer_status) }}</el-tag>
+          <el-tag :type="statusType(row.answerStatus)" size="small">{{ statusLabel(row.answerStatus) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="used_minutes" label="用时(分)" width="80" />
-      <el-table-column prop="cut_screen_count" label="切屏" width="60" />
-      <el-table-column prop="violation_count" label="违规" width="60">
+      <el-table-column prop="usedMinutes" label="用时(分)" width="80" />
+      <el-table-column prop="cutScreenCount" label="切屏" width="60" />
+      <el-table-column prop="violationCount" label="违规" width="60">
         <template #default="{ row }">
-          <span :class="{ danger: row.violation_count > 0 }">{{ row.violation_count }}</span>
+          <span :class="{ danger: row.violationCount > 0 }">{{ row.violationCount }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="total_score" label="得分" width="70" />
+      <el-table-column prop="totalScore" label="得分" width="70" />
+      <el-table-column label="操作" width="100">
+        <template #default="{ row }">
+          <el-button v-if="row.answerStatus === 1" link type="primary" size="small" @click="openExtend(row)">延时</el-button>
+        </template>
+      </el-table-column>
     </el-table>
+
+    <el-dialog v-model="extendVisible" title="延长考试时间" width="350px">
+      <p style="margin-bottom:12px">为 <strong>{{ extendTarget?.studentName }}</strong> 延长：</p>
+      <el-input-number v-model="extendMinutes" :min="5" :max="120" :step="5" /> 分钟
+      <template #footer>
+        <el-button @click="extendVisible = false">取消</el-button>
+        <el-button type="primary" @click="doExtend">确认</el-button>
+      </template>
+    </el-dialog>
 
     <el-empty v-if="selectedExamId && !list.length && !loading" description="暂无考试数据" />
     <el-empty v-if="!selectedExamId" description="请选择一场考试查看监控" />
@@ -40,13 +54,34 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { getExams } from "@/api/exam";
+import { getExams, extendTime } from "@/api/exam";
 import request from "@/api/request";
+import { ElMessage } from "element-plus";
 
 const exams = ref([]);
 const selectedExamId = ref(null);
 const list = ref([]);
 const loading = ref(false);
+
+const extendVisible = ref(false);
+const extendTarget = ref(null);
+const extendMinutes = ref(15);
+
+function openExtend(row) {
+  extendTarget.value = row;
+  extendMinutes.value = 15;
+  extendVisible.value = true;
+}
+
+async function doExtend() {
+  if (!selectedExamId.value || !extendTarget.value) return;
+  try {
+    await extendTime(selectedExamId.value, { studentId: extendTarget.value.studentId, extraMinutes: extendMinutes.value });
+    ElMessage.success(`已为 ${extendTarget.value.studentName} 延长 ${extendMinutes.value} 分钟`);
+    extendVisible.value = false;
+    load();
+  } catch { ElMessage.error("操作失败"); }
+}
 
 onMounted(async () => {
   try {

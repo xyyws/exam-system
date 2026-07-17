@@ -30,7 +30,7 @@ public class JwtTokenProvider {
 
     public String createAccessToken(LoginUser loginUser) {
         Date now = new Date();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .issuer("exam-system")
                 .subject(String.valueOf(loginUser.getUserId()))
                 .claim("username", loginUser.getUsername())
@@ -38,9 +38,11 @@ public class JwtTokenProvider {
                 .claim("roles", loginUser.getRoles())
                 .id(UUID.randomUUID().toString())
                 .issuedAt(now)
-                .expiration(new Date(now.getTime() + accessTokenExpire))
-                .signWith(secretKey)
-                .compact();
+                .expiration(new Date(now.getTime() + accessTokenExpire));
+        if (loginUser.getRealName() != null) {
+            builder.claim("realName", loginUser.getRealName());
+        }
+        return builder.signWith(secretKey).compact();
     }
 
     public String createRefreshToken(Long userId) {

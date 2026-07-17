@@ -10,6 +10,7 @@ import com.exam.common.security.RedisTokenStore;
 import com.exam.common.security.SecurityUtils;
 import com.exam.system.entity.SysRole;
 import com.exam.system.entity.SysUser;
+import com.exam.system.mapper.SysClassMapper;
 import com.exam.system.mapper.SysRoleMapper;
 import com.exam.system.mapper.SysUserMapper;
 import io.jsonwebtoken.Claims;
@@ -41,6 +42,8 @@ class AuthServiceImplTest {
     @Mock
     private SysRoleMapper roleMapper;
     @Mock
+    private SysClassMapper classMapper;
+    @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtTokenProvider jwtTokenProvider;
@@ -53,7 +56,7 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthServiceImpl(userMapper, roleMapper, passwordEncoder, jwtTokenProvider, redisTokenStore);
+        authService = new AuthServiceImpl(userMapper, roleMapper, classMapper, passwordEncoder, jwtTokenProvider, redisTokenStore);
     }
 
     @Test

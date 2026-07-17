@@ -10,8 +10,10 @@ import com.exam.common.model.LoginUser;
 import com.exam.common.security.JwtTokenProvider;
 import com.exam.common.security.RedisTokenStore;
 import com.exam.common.security.SecurityUtils;
+import com.exam.system.entity.SysClass;
 import com.exam.system.entity.SysRole;
 import com.exam.system.entity.SysUser;
+import com.exam.system.mapper.SysClassMapper;
 import com.exam.system.mapper.SysRoleMapper;
 import com.exam.system.mapper.SysUserMapper;
 import io.jsonwebtoken.Claims;
@@ -31,15 +33,17 @@ public class AuthServiceImpl implements AuthService {
 
     private final SysUserMapper userMapper;
     private final SysRoleMapper roleMapper;
+    private final SysClassMapper classMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisTokenStore redisTokenStore;
 
-    public AuthServiceImpl(SysUserMapper userMapper, SysRoleMapper roleMapper,
+    public AuthServiceImpl(SysUserMapper userMapper, SysRoleMapper roleMapper, SysClassMapper classMapper,
                            PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider,
                            RedisTokenStore redisTokenStore) {
         this.userMapper = userMapper;
         this.roleMapper = roleMapper;
+        this.classMapper = classMapper;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.redisTokenStore = redisTokenStore;
@@ -62,6 +66,7 @@ public class AuthServiceImpl implements AuthService {
         List<String> roleCodes = roles.stream().map(SysRole::getRoleCode).collect(Collectors.toList());
 
         LoginUser loginUser = new LoginUser(user.getId(), user.getUsername(), user.getUserType(), roleCodes);
+        loginUser.setRealName(user.getRealName());
         String accessToken = jwtTokenProvider.createAccessToken(loginUser);
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
@@ -76,6 +81,10 @@ public class AuthServiceImpl implements AuthService {
         userInfo.setRealName(user.getRealName());
         userInfo.setUserType(user.getUserType());
         userInfo.setRoles(roleCodes);
+        if (user.getClassId() != null) {
+            SysClass cls = classMapper.selectById(user.getClassId());
+            if (cls != null) userInfo.setClassName(cls.getClassName());
+        }
         response.setUser(userInfo);
 
         log.info("用户登录成功: username={}", user.getUsername());
@@ -110,6 +119,7 @@ public class AuthServiceImpl implements AuthService {
             List<String> roleCodes = roles.stream().map(SysRole::getRoleCode).collect(Collectors.toList());
 
             LoginUser loginUser = new LoginUser(user.getId(), user.getUsername(), user.getUserType(), roleCodes);
+            loginUser.setRealName(user.getRealName());
             String newAccessToken = jwtTokenProvider.createAccessToken(loginUser);
             String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getId());
 
@@ -141,6 +151,10 @@ public class AuthServiceImpl implements AuthService {
         userInfo.setRealName(user.getRealName());
         userInfo.setUserType(user.getUserType());
         userInfo.setRoles(roleCodes);
+        if (user.getClassId() != null) {
+            SysClass cls = classMapper.selectById(user.getClassId());
+            if (cls != null) userInfo.setClassName(cls.getClassName());
+        }
         return userInfo;
     }
 

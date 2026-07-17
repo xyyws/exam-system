@@ -62,6 +62,9 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ApiResponse<Void> handleException(Exception ex) {
         log.error("系统异常", ex);
-        return ApiResponse.fail(ApiCodeEnum.SYSTEM_ERROR);
+        String detail = ex.getMessage();
+        if (detail != null && detail.length() > 200) detail = detail.substring(0, 200);
+        return ApiResponse.fail(ApiCodeEnum.SYSTEM_ERROR.getCode(),
+                detail != null ? "系统异常: " + detail : "系统异常");
     }
 }

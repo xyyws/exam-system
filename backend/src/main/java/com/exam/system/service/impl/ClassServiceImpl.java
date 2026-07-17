@@ -80,6 +80,13 @@ public class ClassServiceImpl implements ClassService {
         classMapper.update(cls);
     }
 
+    @Override
+    public void deleteClass(Long id) {
+        SysClass cls = classMapper.selectById(id);
+        if (cls == null) throw new BusinessException(ApiCodeEnum.CLASS_NOT_FOUND);
+        classMapper.deleteById(id);
+    }
+
     private ClassResponse toResponse(SysClass c) {
         ClassResponse r = new ClassResponse();
         r.setId(c.getId());

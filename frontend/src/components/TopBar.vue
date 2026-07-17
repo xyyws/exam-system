@@ -15,8 +15,8 @@ const authStore = useAuthStore();
 const shell = computed(() => roleShellMap[(props.role || "admin").toLowerCase()]);
 const breadcrumb = computed(() => route.meta.title || "首页");
 
-function handleLogout() {
-  authStore.logout();
+async function handleLogout() {
+  await authStore.logout();
   router.push("/login");
 }
 </script>

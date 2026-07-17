@@ -62,6 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Long userId = Long.valueOf(claims.getSubject());
             String username = claims.get("username", String.class);
             Integer userType = claims.get("userType", Integer.class);
+            String realName = claims.get("realName", String.class);
             @SuppressWarnings("unchecked")
             List<String> roles = claims.get("roles", List.class);
 
@@ -77,6 +78,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .collect(Collectors.toList());
 
             LoginUser loginUser = new LoginUser(userId, username, userType, roles);
+            loginUser.setRealName(realName);
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(loginUser, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(auth);

@@ -20,7 +20,7 @@ const shell = computed(() => roleShellMap[(props.role || "admin").toLowerCase()]
 
 async function handleLogout() {
   try { await ElMessageBox.confirm("确认退出登录？", "提示", { type: "warning" }); } catch { return; }
-  authStore.logout();
+  await authStore.logout();
   router.push("/login");
 }
 

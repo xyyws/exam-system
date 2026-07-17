@@ -13,13 +13,27 @@
       <el-table-column prop="status" label="状态" width="80">
         <template #default="{ row }">{{ row.status === 1 ? '启用' : '禁用' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" width="240">
         <template #default="{ row }">
           <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
+          <el-button link type="success" @click="viewStudents(row)">查看学生</el-button>
+          <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
     <el-pagination v-model:current-page="pageNum" :total="total" :page-size="10" layout="prev,pager,next" @current-change="fetch" />
+
+    <el-dialog v-model="studentDialogVisible" :title="`班级学生 — ${studentClassName}`" width="600px">
+      <el-table :data="studentList" stripe v-loading="studentLoading" empty-text="该班级暂无学生">
+        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="realName" label="姓名" />
+        <el-table-column prop="studentNo" label="学号" />
+        <el-table-column prop="phone" label="手机号" />
+        <el-table-column prop="status" label="状态" width="80">
+          <template #default="{ row }">{{ row.status === 1 ? '启用' : '禁用' }}</template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑班级' : '新增班级'" width="450px">
       <el-form :model="form" label-width="80px">
@@ -36,8 +50,8 @@
 
 <script setup>
 import { ref, reactive, onMounted } from "vue";
-import { getClasses, createClass, updateClass } from "@/api/system";
-import { ElMessage } from "element-plus";
+import { getClasses, createClass, updateClass, deleteClass, getStudents } from "@/api/system";
+import { ElMessage, ElMessageBox } from "element-plus";
 
 const list = ref([]);
 const loading = ref(false);
@@ -45,6 +59,11 @@ const pageNum = ref(1);
 const total = ref(0);
 const dialogVisible = ref(false);
 const form = reactive({ id: null, className: "", gradeName: "", deptName: "", teacherId: null, remark: "", status: 1 });
+
+const studentDialogVisible = ref(false);
+const studentLoading = ref(false);
+const studentList = ref([]);
+const studentClassName = ref("");
 
 onMounted(fetch);
 
@@ -62,13 +81,33 @@ function openDialog(row) {
   dialogVisible.value = true;
 }
 
+async function viewStudents(row) {
+  studentClassName.value = row.className;
+  studentDialogVisible.value = true;
+  studentLoading.value = true;
+  try {
+    const res = await getStudents({ classId: row.id });
+    studentList.value = res.data?.records || [];
+  } catch { studentList.value = []; }
+  finally { studentLoading.value = false; }
+}
+
 async function save() {
   try {
-    form.id ? await updateClass(form.id, form) : await createClass(form);
+    const { id, ...all } = form;
+    if (id) await updateClass(id, all);
+    else await createClass(all);
     dialogVisible.value = false;
     fetch();
     ElMessage.success("保存成功");
   } catch { ElMessage.error("保存失败"); }
+}
+
+async function handleDelete(row) {
+  await ElMessageBox.confirm(`确认删除班级「${row.className}」？`, "删除确认", { type: "warning" });
+  await deleteClass(row.id);
+  fetch();
+  ElMessage.success("已删除");
 }
 </script>
 

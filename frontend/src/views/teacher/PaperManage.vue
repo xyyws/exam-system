@@ -2,7 +2,10 @@
   <div class="page-panel">
     <div class="page-header">
       <h2>试卷管理</h2>
-      <el-button type="primary" @click="$router.push('/teacher/paper-auto')">自动组卷</el-button>
+      <div>
+        <el-button @click="$router.push('/teacher/paper-manual')">手动组卷</el-button>
+        <el-button type="primary" @click="$router.push('/teacher/paper-auto')">自动组卷</el-button>
+      </div>
     </div>
     <el-table :data="list" stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="60" />
@@ -15,7 +18,7 @@
       </el-table-column>
       <el-table-column label="操作" width="120">
         <template #default="{ row }">
-          <el-button link type="primary" @click="$router.push(`/teacher/exams/create?paperId=${row.id}`)">创建考试</el-button>
+          <el-button link type="primary" @click="$router.push(`/teacher/exams?paperId=${row.id}`)">创建考试</el-button>
           <el-button link type="danger" @click="handleDelete(row.id)">删除</el-button>
         </template>
       </el-table-column>

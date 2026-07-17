@@ -23,6 +23,7 @@ public class LoginResponse {
         private String realName;
         private Integer userType;
         private List<String> roles;
+        private String className;
 
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -34,5 +35,7 @@ public class LoginResponse {
         public void setUserType(Integer userType) { this.userType = userType; }
         public List<String> getRoles() { return roles; }
         public void setRoles(List<String> roles) { this.roles = roles; }
+        public String getClassName() { return className; }
+        public void setClassName(String className) { this.className = className; }
     }
 }

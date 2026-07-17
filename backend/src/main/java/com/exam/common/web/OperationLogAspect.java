@@ -38,6 +38,7 @@ public class OperationLogAspect {
                 opLog.setUserId(SecurityUtils.getCurrentUserId());
                 var loginUser = SecurityUtils.getLoginUser();
                 opLog.setUsername(loginUser.getUsername());
+                opLog.setRealName(loginUser.getRealName());
             } catch (Exception ignored) {}
 
             // Extract request info

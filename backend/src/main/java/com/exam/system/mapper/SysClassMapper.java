@@ -14,4 +14,5 @@ public interface SysClassMapper {
     long countList(@Param("keyword") String keyword, @Param("status") Integer status);
     int insert(SysClass sysClass);
     int update(SysClass sysClass);
+    int deleteById(@Param("id") Long id);
 }

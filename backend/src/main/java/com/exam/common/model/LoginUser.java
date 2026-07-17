@@ -6,6 +6,7 @@ import java.util.List;
 public class LoginUser {
     private Long userId;
     private String username;
+    private String realName;
     private Integer userType;
     private Collection<String> roles;
 
@@ -21,6 +22,8 @@ public class LoginUser {
     public void setUserId(Long userId) { this.userId = userId; }
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+    public String getRealName() { return realName; }
+    public void setRealName(String realName) { this.realName = realName; }
     public Integer getUserType() { return userType; }
     public void setUserType(Integer userType) { this.userType = userType; }
     public Collection<String> getRoles() { return roles; }

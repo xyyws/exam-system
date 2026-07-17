@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface ExamMapper {
@@ -21,4 +22,10 @@ public interface ExamMapper {
                    @Param("keyword") String keyword);
 
     long countAll();
+
+    long countPublished();
+
+    List<Map<String, Object>> selectTeacherExamStats();
+
+    List<Map<String, Object>> selectTeacherExams(@Param("creatorId") Long creatorId);
 }

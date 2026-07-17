@@ -18,6 +18,7 @@
         <result column="violation_count" property="violationCount"/>
         <result column="ip_address" property="ipAddress"/>
         <result column="device_info" property="deviceInfo"/>
+        <result column="extra_minutes" property="extraMinutes"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
@@ -68,8 +69,8 @@
     </select>
 
     <select id="selectExamRankings" resultType="java.util.HashMap">
-        SELECT ep.id AS exam_paper_id, ep.student_id, ep.total_score, ep.answer_status,
-               u.real_name AS student_name, u.student_no
+        SELECT ep.id AS examPaperId, ep.student_id AS studentId, ep.total_score AS totalScore,
+               ep.answer_status AS answerStatus, u.real_name AS studentName, u.student_no AS studentNo
         FROM exam_paper ep
         JOIN sys_user u ON ep.student_id = u.id
         WHERE ep.exam_id = #{examId} AND ep.answer_status >= 2
@@ -82,9 +83,10 @@
     </select>
 
     <select id="selectMonitorByExamId" resultType="java.util.HashMap">
-        SELECT ep.id AS exam_paper_id, ep.student_id, ep.answer_status, ep.cut_screen_count,
-               ep.violation_count, ep.used_minutes, ep.total_score,
-               u.real_name AS student_name, u.student_no
+        SELECT ep.id AS examPaperId, ep.student_id AS studentId, ep.answer_status AS answerStatus,
+               ep.cut_screen_count AS cutScreenCount, ep.violation_count AS violationCount,
+               ep.used_minutes AS usedMinutes, ep.total_score AS totalScore,
+               u.real_name AS studentName, u.student_no AS studentNo
         FROM exam_paper ep
         JOIN sys_user u ON ep.student_id = u.id
         WHERE ep.exam_id = #{examId}
@@ -92,10 +94,10 @@
     </select>
 
     <select id="selectOngoingByStudentId" resultType="java.util.HashMap">
-        SELECT ep.id AS exam_paper_id, ep.exam_id, ep.start_time,
-               e.exam_name, e.end_time, e.duration_minutes,
-               (SELECT COUNT(*) FROM exam_answer ea WHERE ea.exam_paper_id = ep.id AND ea.answer_status >= 1) AS answered_count,
-               (SELECT COUNT(*) FROM exam_answer ea WHERE ea.exam_paper_id = ep.id) AS total_count
+        SELECT ep.id AS examPaperId, ep.exam_id AS examId, ep.start_time AS startTime,
+               e.exam_name AS examName, e.end_time AS endTime, e.duration_minutes AS durationMinutes,
+               (SELECT COUNT(*) FROM exam_answer ea WHERE ea.exam_paper_id = ep.id AND ea.answer_status >= 1) AS answeredCount,
+               (SELECT COUNT(*) FROM exam_answer ea WHERE ea.exam_paper_id = ep.id) AS totalCount
         FROM exam_paper ep
         JOIN exam e ON ep.exam_id = e.id
         WHERE ep.student_id = #{studentId} AND ep.answer_status = 1
@@ -105,4 +107,36 @@
     <select id="countParticipants" resultType="long">
         SELECT COUNT(1) FROM exam_paper
     </select>
+
+    <select id="selectParticipants" resultType="java.util.HashMap">
+        SELECT ep.id AS examPaperId, ep.exam_id AS examId, ep.student_id AS studentId,
+               ep.answer_status AS answerStatus, ep.total_score AS totalScore,
+               ep.used_minutes AS usedMinutes, ep.submit_time AS submitTime, ep.create_time AS createTime,
+               e.exam_name AS examName, u.real_name AS studentName, u.student_no AS studentNo
+        FROM exam_paper ep
+        JOIN exam e ON ep.exam_id = e.id
+        JOIN sys_user u ON ep.student_id = u.id
+        <where>
+            <if test="studentName != null and studentName != ''">
+                AND u.real_name LIKE CONCAT('%', #{studentName}, '%')
+            </if>
+        </where>
+        ORDER BY ep.create_time DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countParticipantsByCondition" resultType="long">
+        SELECT COUNT(1)
+        FROM exam_paper ep
+        JOIN sys_user u ON ep.student_id = u.id
+        <where>
+            <if test="studentName != null and studentName != ''">
+                AND u.real_name LIKE CONCAT('%', #{studentName}, '%')
+            </if>
+        </where>
+    </select>
+
+    <delete id="deleteByStudentId">
+        DELETE FROM exam_paper WHERE student_id = #{studentId}
+    </delete>
 </mapper>

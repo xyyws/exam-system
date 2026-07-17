@@ -11,4 +11,5 @@ public interface ClassService {
     Long createClass(ClassCreateRequest request);
     void updateClass(Long id, ClassCreateRequest request);
     void updateStatus(Long id, Integer status);
+    void deleteClass(Long id);
 }

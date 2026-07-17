@@ -19,4 +19,8 @@ public interface ExamAnswerMapper {
     // Analytics queries
     List<java.util.Map<String, Object>> selectScoreTrend(@Param("studentId") Long studentId);
     List<java.util.Map<String, Object>> selectTypeBreakdown(@Param("studentId") Long studentId);
+    List<java.util.Map<String, Object>> selectQuestionAccuracy(@Param("examId") Long examId);
+
+    // Delete by student
+    int deleteByStudentId(@Param("studentId") Long studentId);
 }

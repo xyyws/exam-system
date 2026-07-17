@@ -36,3 +36,24 @@ dump.rdb
 *.class
 *.war
 *.ear
+.ace-tool/
+
+# OpenWolf / Claude Code
+.wolf/
+.claude/
+AGENTS.md
+CLAUDE.md
+
+# 演示/答辩文件
+*.pptx
+*.html
+*.png
+*.xlsx
+演讲稿.md
+答辩PPT.*
+generate_ppt.py
+open-demo.ps1
+open-students.ps1
+
+# 文档目录（按需保留）
+docs-frontend/

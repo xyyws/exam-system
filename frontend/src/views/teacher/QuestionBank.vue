@@ -69,10 +69,7 @@
     <el-dialog v-model="importDialogVisible" title="批量导入题目" width="550px" @close="resetImport">
       <div v-if="!importResult">
         <div style="margin-bottom: 16px;">
-          <el-button type="primary" link @click="downloadTemplate">
-            <el-icon><Download /></el-icon> 下载导入模板
-          </el-button>
-          <span style="color: #909399; font-size: 12px; margin-left: 8px">请按照模板格式填写数据后上传</span>
+          <el-button type="primary" link @click="templateDialogVisible = true">查看导入模板格式</el-button>
         </div>
         <el-upload
           ref="uploadRef"
@@ -114,6 +111,37 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 模板格式说明对话框 -->
+    <el-dialog v-model="templateDialogVisible" title="导入模板格式说明" width="780px">
+      <el-alert type="info" :closable="false" style="margin-bottom: 16px">
+        按以下格式准备Excel文件（.xlsx / .xls），第1行为表头，第2行起为数据。
+      </el-alert>
+      <el-table :data="templateHeaders" border size="small" style="margin-bottom: 16px">
+        <el-table-column prop="col" label="列" width="50" align="center" />
+        <el-table-column prop="field" label="字段名" width="100" />
+        <el-table-column prop="required" label="必填" width="60" align="center">
+          <template #default="{ row }">
+            <el-tag :type="row.required ? 'danger' : 'info'" size="small">{{ row.required ? '是' : '否' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="desc" label="说明" />
+      </el-table>
+
+      <h4 style="margin: 12px 0 8px">样例数据</h4>
+      <el-table :data="templateExamples" border size="small" max-height="320">
+        <el-table-column prop="type" label="题型" width="70" />
+        <el-table-column prop="title" label="题干" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="optA" label="选项A" width="70" />
+        <el-table-column prop="optB" label="选项B" width="70" />
+        <el-table-column prop="optC" label="选项C" width="70" />
+        <el-table-column prop="optD" label="选项D" width="70" />
+        <el-table-column prop="answer" label="正确答案" width="80" />
+        <el-table-column prop="score" label="分值" width="50" align="center" />
+        <el-table-column prop="difficulty" label="难度" width="60" align="center" />
+      </el-table>
+      <template #footer><el-button type="primary" @click="templateDialogVisible = false">知道了</el-button></template>
+    </el-dialog>
   </div>
 </template>
 
@@ -128,36 +156,41 @@ const loading = ref(false);
 const total = ref(0);
 const params = reactive({ pageNum: 1, pageSize: 10, keyword: "", questionType: null, difficulty: null });
 const dialogVisible = ref(false);
-const form = reactive({ id: null, questionType: 1, title: "", difficulty: 3, score: 0, correctAnswer: "", answerAnalysis: "", options: [] });
+const form = reactive({ id: null, questionType: 1, title: "", difficulty: 3, score: 0, correctAnswer: "", answerAnalysis: "", options: [], status: 1 });
 const typeMap = { 1: "单选", 2: "多选", 3: "判断", 4: "填空", 5: "简答" };
 const diffMap = { 1: "简单", 2: "较易", 3: "中等", 4: "较难", 5: "困难" };
 
 // ─── 批量导入 ───
 const importDialogVisible = ref(false);
+const templateDialogVisible = ref(false);
 const importLoading = ref(false);
 const importFile = ref(null);
 const importResult = ref(null);
 const uploadRef = ref(null);
 
+const templateHeaders = [
+  { col: "A", field: "题型", required: true, desc: "单选题 / 多选题 / 判断题 / 填空题 / 简答题" },
+  { col: "B", field: "题干", required: true, desc: "题目内容" },
+  { col: "C", field: "选项A", required: false, desc: "单选/多选必填，判断/填空/简答留空" },
+  { col: "D", field: "选项B", required: false, desc: "单选/多选必填" },
+  { col: "E", field: "选项C", required: false, desc: "可选" },
+  { col: "F", field: "选项D", required: false, desc: "可选" },
+  { col: "G", field: "正确答案", required: true, desc: "单选填字母(A)，多选用逗号分隔(A,B)，判断填T/F，填空/简答填文本" },
+  { col: "H", field: "分值", required: true, desc: "大于0的数字" },
+  { col: "I", field: "难度", required: false, desc: "简单 / 较易 / 中等 / 较难 / 困难，默认中等" },
+  { col: "J", field: "解析", required: false, desc: "答案解析说明" }
+];
+
+const templateExamples = [
+  { type: "单选题", title: "MySQL中用于创建数据库的SQL语句是？", optA: "CREATE TABLE", optB: "CREATE DATABASE", optC: "ALTER DATABASE", optD: "DROP DATABASE", answer: "B", score: 2, difficulty: "简单" },
+  { type: "多选题", title: "以下哪些是Java的基本数据类型？", optA: "int", optB: "String", optC: "boolean", optD: "List", answer: "A,C", score: 3, difficulty: "中等" },
+  { type: "判断题", title: "Java支持多继承", optA: "", optB: "", optC: "", optD: "", answer: "F", score: 2, difficulty: "简单" },
+  { type: "填空题", title: "Java中所有类的父类是____", optA: "", optB: "", optC: "", optD: "", answer: "Object", score: 2, difficulty: "中等" },
+  { type: "简答题", title: "请简述Spring IOC的概念", optA: "", optB: "", optC: "", optD: "", answer: "IOC是控制反转...", score: 5, difficulty: "困难" }
+];
+
 function onFileChange(file) {
   importFile.value = file.raw;
-}
-
-async function downloadTemplate() {
-  try {
-    const token = localStorage.getItem("accessToken");
-    const res = await fetch("http://localhost:8080/api/teacher/questions/import/template", {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error("下载失败");
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "题目导入模板.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch { ElMessage.error("模板下载失败"); }
 }
 
 async function doImport() {
@@ -222,11 +255,11 @@ function openDialog(row) {
 }
 
 async function save() {
-  const data = { ...form };
+  const { id, ...data } = form;
   // Convert isCorrect to integer
   (data.options || []).forEach(o => o.isCorrect = o.isCorrect ? 1 : 0);
   try {
-    if (data.id) { await updateQuestion(data.id, data); }
+    if (id) { await updateQuestion(id, data); }
     else { await createQuestion(data); }
     dialogVisible.value = false;
     fetch();

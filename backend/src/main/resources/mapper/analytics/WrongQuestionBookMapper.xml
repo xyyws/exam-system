@@ -21,8 +21,12 @@
         <result column="question_type" property="questionType"/>
     </resultMap>
 
-    <select id="selectByStudent" resultMap="BaseResultMap">
-        SELECT w.*, q.title AS question_title, q.question_type AS question_type
+    <select id="selectByStudent" resultType="java.util.LinkedHashMap">
+        SELECT w.id, w.student_id, w.question_id, w.exam_id, w.exam_paper_id,
+               w.first_wrong_time, w.last_wrong_time, w.wrong_count, w.latest_answer,
+               w.mastered_status, w.mastered_time, w.note_text,
+               q.title AS question_title, q.question_type AS question_type,
+               q.correct_answer AS correct_answer, q.answer_analysis AS answer_analysis
         FROM wrong_question_book w
         LEFT JOIN question q ON w.question_id = q.id
         WHERE w.student_id = #{studentId}
@@ -55,4 +59,22 @@
         WHERE w.student_id = #{studentId}
         GROUP BY q.question_type
     </select>
+
+    <update id="updateNote">
+        UPDATE wrong_question_book
+        SET note_text = #{noteText}
+        WHERE student_id = #{studentId} AND question_id = #{questionId}
+    </update>
+
+    <insert id="upsert">
+        INSERT INTO wrong_question_book (student_id, question_id, exam_id, exam_paper_id,
+            first_wrong_time, last_wrong_time, wrong_count, latest_answer, mastered_status)
+        VALUES (#{studentId}, #{questionId}, #{examId}, #{examPaperId},
+            NOW(), NOW(), 1, #{latestAnswer}, 0)
+        ON DUPLICATE KEY UPDATE
+            last_wrong_time = NOW(),
+            wrong_count = wrong_count + 1,
+            latest_answer = #{latestAnswer},
+            mastered_status = 0
+    </insert>
 </mapper>

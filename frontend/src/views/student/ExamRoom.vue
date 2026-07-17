@@ -55,7 +55,8 @@
 
         <div class="nav-buttons">
           <el-button :disabled="currentIdx === 0" @click="currentIdx--">上一题</el-button>
-          <el-button type="primary" :disabled="currentIdx >= questions.length - 1" @click="currentIdx++">下一题</el-button>
+          <el-button v-if="currentIdx < questions.length - 1" type="primary" @click="currentIdx++">下一题</el-button>
+          <el-button v-else type="success" @click="handleSubmit">交卷</el-button>
         </div>
       </div>
     </div>

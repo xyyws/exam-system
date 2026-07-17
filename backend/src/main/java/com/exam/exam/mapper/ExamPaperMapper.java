@@ -26,4 +26,11 @@ public interface ExamPaperMapper {
     Map<String, Object> selectOngoingByStudentId(@Param("studentId") Long studentId);
 
     long countParticipants();
+
+    List<Map<String, Object>> selectParticipants(@Param("studentName") String studentName,
+                                                  @Param("offset") int offset, @Param("limit") int limit);
+
+    long countParticipantsByCondition(@Param("studentName") String studentName);
+
+    int deleteByStudentId(@Param("studentId") Long studentId);
 }

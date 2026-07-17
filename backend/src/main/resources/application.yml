@@ -1,7 +1,12 @@
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8081}
+  compression:
+    enabled: false
 
 spring:
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
   application:
     name: online-exam-backend
   servlet:

@@ -1,5 +1,5 @@
 -- ========== 在线考试系统 种子数据 ==========
--- 密码均为: 密码123 (BCrypt hash)
+-- 密码均为: 123456 (BCrypt hash)
 
 -- 1. 班级数据 (5个班级)
 INSERT INTO sys_class (class_name, grade_name, dept_name, status) VALUES

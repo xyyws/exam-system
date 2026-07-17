@@ -11,10 +11,14 @@ import com.exam.exam.mapper.ExamMapper;
 import com.exam.exam.mapper.ExamPaperMapper;
 import com.exam.paper.entity.PaperQuestion;
 import com.exam.paper.mapper.PaperQuestionMapper;
+import com.exam.analytics.entity.WrongQuestionBook;
+import com.exam.analytics.mapper.WrongQuestionBookMapper;
 import com.exam.runtime.entity.ExamAnswer;
 import com.exam.runtime.mapper.ExamAnswerMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,18 +34,24 @@ public class RuntimeService {
     private final ExamPaperMapper examPaperMapper;
     private final PaperQuestionMapper paperQuestionMapper;
     private final ExamAnswerMapper answerMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final WrongQuestionBookMapper wrongQuestionBookMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     public RuntimeService(ExamMapper examMapper, ExamPaperMapper examPaperMapper,
-                          PaperQuestionMapper paperQuestionMapper, ExamAnswerMapper answerMapper) {
+                          PaperQuestionMapper paperQuestionMapper, ExamAnswerMapper answerMapper,
+                          WrongQuestionBookMapper wrongQuestionBookMapper) {
         this.examMapper = examMapper;
         this.examPaperMapper = examPaperMapper;
         this.paperQuestionMapper = paperQuestionMapper;
         this.answerMapper = answerMapper;
+        this.wrongQuestionBookMapper = wrongQuestionBookMapper;
     }
 
     public Map<String, Object> getAvailableExams(Long studentId) {
-        List<Exam> exams = examMapper.selectAvailable(studentId, LocalDateTime.now().toString());
+        String now = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        List<Exam> exams = examMapper.selectAvailable(studentId, now);
         List<Map<String, Object>> list = new ArrayList<>();
         for (Exam e : exams) {
             Map<String, Object> item = new LinkedHashMap<>();
@@ -52,6 +62,9 @@ public class RuntimeService {
             item.put("passScore", e.getPassScore());
             item.put("startTime", e.getStartTime().toString());
             item.put("endTime", e.getEndTime().toString());
+            // 题目数量
+            List<PaperQuestion> pqList = paperQuestionMapper.selectByPaperId(e.getPaperId());
+            item.put("questionCount", pqList != null ? pqList.size() : 0);
             list.add(item);
         }
         return Map.of("exams", list);
@@ -104,7 +117,15 @@ public class RuntimeService {
         examPaperMapper.update(ep);
 
         List<PaperQuestion> pqs = paperQuestionMapper.selectByPaperId(exam.getPaperId());
+
+        // 题目乱序 (examMode=2): 用学生ID作为种子，保证同一学生每次看到相同顺序，不同学生顺序不同
+        int mode = exam.getExamMode() != null ? exam.getExamMode() : 1;
+        if (mode == 2) {
+            Collections.shuffle(pqs, new Random(studentId));
+        }
+
         List<ExamAnswer> answers = new ArrayList<>();
+        int order = 1;
         for (PaperQuestion pq : pqs) {
             ExamAnswer ans = new ExamAnswer();
             ans.setExamPaperId(ep.getId());
@@ -113,7 +134,7 @@ public class RuntimeService {
             ans.setQuestionId(pq.getQuestionId());
             ans.setStudentId(studentId);
             ans.setQuestionType(pq.getQuestionType());
-            ans.setQuestionOrder(pq.getQuestionOrder());
+            ans.setQuestionOrder(order++);
             ans.setMaxScore(pq.getScore());
             ans.setScore(BigDecimal.ZERO);
             ans.setAnswerStatus(0);
@@ -130,23 +151,48 @@ public class RuntimeService {
         List<PaperQuestion> pqs = paperQuestionMapper.selectByPaperId(exam.getPaperId());
         List<ExamAnswer> answers = answerMapper.selectByExamPaperId(ep.getId());
 
-        long remainSeconds = exam.getEndTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
-                - System.currentTimeMillis();
-        remainSeconds = Math.max(0, remainSeconds / 1000);
+        int extra = ep.getExtraMinutes() != null ? ep.getExtraMinutes() : 0;
+        int duration = exam.getDurationMinutes() != null ? exam.getDurationMinutes() : 60;
+        long totalSeconds = (duration + extra) * 60L;
+
+        // 如果学生已经开始答题，减去已用时间
+        if (ep.getStartTime() != null) {
+            long elapsed = System.currentTimeMillis()
+                    - ep.getStartTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+            long remainSeconds = Math.max(0, totalSeconds - elapsed / 1000);
+            // 同时不能超过考试结束时间
+            long untilEndTime = exam.getEndTime().plusMinutes(extra)
+                    .atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    - System.currentTimeMillis();
+            remainSeconds = Math.min(remainSeconds, Math.max(0, untilEndTime / 1000));
+            totalSeconds = remainSeconds;
+        }
+
+        // 题目乱序 (examMode=2): 按学生ID作为种子打乱顺序
+        int mode = exam.getExamMode() != null ? exam.getExamMode() : 1;
+        if (mode == 2) {
+            Collections.shuffle(pqs, new Random(ep.getStudentId()));
+        }
 
         // Strip correctAnswer from paper questions for student view
         List<Map<String, Object>> sanitizedQuestions = new ArrayList<>();
+        int order = 1;
         for (PaperQuestion pq : pqs) {
             Map<String, Object> q = new LinkedHashMap<>();
             q.put("questionId", pq.getQuestionId());
             q.put("questionType", pq.getQuestionType());
-            q.put("questionOrder", pq.getQuestionOrder());
+            q.put("questionOrder", order++);
             q.put("score", pq.getScore());
             try {
                 Map<String, Object> snap = objectMapper.readValue(pq.getQuestionSnapshot(), new TypeReference<>() {});
                 q.put("title", snap.get("title"));
                 q.put("difficulty", snap.get("difficulty"));
-                q.put("options", snap.get("options"));
+                // 选项乱序 (examMode=3): 打乱选项顺序
+                if (mode == 3) {
+                    q.put("options", shuffleOptions(snap.get("options"), ep.getStudentId(), pq.getQuestionId()));
+                } else {
+                    q.put("options", snap.get("options"));
+                }
                 q.put("tags", snap.get("tags"));
                 // deliberately exclude: correctAnswer, answerAnalysis
             } catch (Exception e) {
@@ -155,16 +201,35 @@ public class RuntimeService {
             sanitizedQuestions.add(q);
         }
 
+        // 按新的questionOrder排序answers以匹配题目顺序
+        Map<Long, ExamAnswer> answerMap = new LinkedHashMap<>();
+        for (ExamAnswer a : answers) answerMap.put(a.getQuestionId(), a);
+        List<ExamAnswer> orderedAnswers = new ArrayList<>();
+        for (Map<String, Object> q : sanitizedQuestions) {
+            Long qid = ((Number) q.get("questionId")).longValue();
+            ExamAnswer a = answerMap.get(qid);
+            if (a != null) orderedAnswers.add(a);
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("examPaperId", ep.getId());
         result.put("examId", exam.getId());
         result.put("examName", exam.getExamName());
         result.put("durationMinutes", exam.getDurationMinutes());
         result.put("totalScore", exam.getTotalScore());
-        result.put("remainSeconds", remainSeconds);
+        result.put("remainSeconds", totalSeconds);
         result.put("questions", sanitizedQuestions);
-        result.put("answers", answers);
+        result.put("answers", orderedAnswers.isEmpty() ? answers : orderedAnswers);
         return result;
+    }
+
+    // 选项乱序：用学生ID+题目ID作为种子，保证同一学生每次看到相同选项顺序
+    @SuppressWarnings("unchecked")
+    private Object shuffleOptions(Object options, Long studentId, Long questionId) {
+        if (!(options instanceof List)) return options;
+        List<Map<String, Object>> optionList = new ArrayList<>((List<Map<String, Object>>) options);
+        Collections.shuffle(optionList, new Random(studentId * 31 + questionId));
+        return optionList;
     }
 
     // CRITICAL FIX: verify ownership before any write operation
@@ -235,8 +300,20 @@ public class RuntimeService {
             a.setIsCorrect(correct ? 1 : 0);
             a.setScore(correct ? a.getMaxScore() : BigDecimal.ZERO);
             a.setAnswerStatus(2);
+            a.setMarkStatus(1);
             objectiveTotal = objectiveTotal.add(a.getScore());
             answerMapper.updateScore(a);
+
+            // 错题本：答错的题目自动添加
+            if (!correct) {
+                WrongQuestionBook wq = new WrongQuestionBook();
+                wq.setStudentId(a.getStudentId());
+                wq.setQuestionId(a.getQuestionId());
+                wq.setExamId(a.getExamId());
+                wq.setExamPaperId(a.getExamPaperId());
+                wq.setLatestAnswer(a.getStudentAnswer());
+                wrongQuestionBookMapper.upsert(wq);
+            }
         }
         ExamPaper ep = examPaperMapper.selectById(examPaperId);
         ep.setObjectiveScore(objectiveTotal);

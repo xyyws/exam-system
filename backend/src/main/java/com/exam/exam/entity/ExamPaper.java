@@ -21,6 +21,7 @@ public class ExamPaper {
     private Integer violationCount;
     private String ipAddress;
     private String deviceInfo;
+    private Integer extraMinutes;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -58,6 +59,8 @@ public class ExamPaper {
     public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
     public String getDeviceInfo() { return deviceInfo; }
     public void setDeviceInfo(String deviceInfo) { this.deviceInfo = deviceInfo; }
+    public Integer getExtraMinutes() { return extraMinutes; }
+    public void setExtraMinutes(Integer extraMinutes) { this.extraMinutes = extraMinutes; }
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }
